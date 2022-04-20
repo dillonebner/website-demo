@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Dillon Ebner" />
+
+<meta name="date" content="2022-03-29" />
+
+<title>Lab 03 - Using Propensity Scores</title>
+
+<script src="site_libs/header-attrs-2.7/header-attrs.js"></script>
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.tab('show');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">This is an example!</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="analysis.html">Analysis</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li>
+  <a href="https://github.com/lucymcgowan">
+    <span class="fas fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Lab 03 - Using Propensity Scores</h1>
+<h4 class="author">Dillon Ebner</h4>
+<h4 class="date">2022-03-29</h4>
+
+</div>
+
+
+<pre class="r"><code>library(tidyverse)
+library(smd)
+library(broom)
+library(ggplot2)
+library(ggdag)</code></pre>
+<div id="exercise-1" class="section level2">
+<h2>Exercise 1</h2>
+<pre class="r"><code>coffee_town &lt;- read.csv(&quot;coffee_town_df.csv&quot;)</code></pre>
+<p>There are 1,100 observations in the data set.</p>
+<pre class="r"><code>nrow(subset(coffee_town, coffee_town == &quot;1&quot;))</code></pre>
+<pre><code>## [1] 113</code></pre>
+<p>Only 113 of the individuals are in the exposed group, or live in coffee town.</p>
+<p>The columns or variables of the data set are:</p>
+<ol style="list-style-type: decimal">
+<li>Whether or not someone lives in coffee town</li>
+<li>How many cups of coffee one drinks per day</li>
+<li>The age</li>
+<li>The job difficulty</li>
+<li>Smoking history</li>
+</ol>
+<pre class="r"><code>coffee_town &lt;- coffee_town%&gt;%
+  filter(!is.na(coffee_town))</code></pre>
+<p>It does not look like there are any missing variables as after filtering the data every observation remains</p>
+</div>
+<div id="exercise-2" class="section level2">
+<h2>Exercise 2</h2>
+<pre class="r"><code>library(gtsummary)
+coffee_town %&gt;%
+  tbl_summary(
+    by = coffee_town,
+    include = c(
+      &quot;age&quot;,
+      &quot;job&quot;,
+      &quot;smoke&quot;)
+  ) %&gt;%
+  add_overall()</code></pre>
+<div id="uixnyugoxh" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#uixnyugoxh .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#uixnyugoxh .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#uixnyugoxh .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#uixnyugoxh .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#uixnyugoxh .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#uixnyugoxh .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#uixnyugoxh .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#uixnyugoxh .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#uixnyugoxh .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#uixnyugoxh .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#uixnyugoxh .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#uixnyugoxh .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#uixnyugoxh .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#uixnyugoxh .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#uixnyugoxh .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#uixnyugoxh .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#uixnyugoxh .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#uixnyugoxh .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#uixnyugoxh .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#uixnyugoxh .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#uixnyugoxh .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#uixnyugoxh .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#uixnyugoxh .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#uixnyugoxh .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#uixnyugoxh .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#uixnyugoxh .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#uixnyugoxh .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#uixnyugoxh .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#uixnyugoxh .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#uixnyugoxh .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#uixnyugoxh .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#uixnyugoxh .gt_left {
+  text-align: left;
+}
+
+#uixnyugoxh .gt_center {
+  text-align: center;
+}
+
+#uixnyugoxh .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#uixnyugoxh .gt_font_normal {
+  font-weight: normal;
+}
+
+#uixnyugoxh .gt_font_bold {
+  font-weight: bold;
+}
+
+#uixnyugoxh .gt_font_italic {
+  font-style: italic;
+}
+
+#uixnyugoxh .gt_super {
+  font-size: 65%;
+}
+
+#uixnyugoxh .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#uixnyugoxh .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#uixnyugoxh .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#uixnyugoxh .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#uixnyugoxh .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1"><strong>Characteristic</strong></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1"><strong>Overall</strong>, N = 1,100<sup class="gt_footnote_marks">1</sup></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1"><strong>0</strong>, N = 987<sup class="gt_footnote_marks">1</sup></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1"><strong>1</strong>, N = 113<sup class="gt_footnote_marks">1</sup></th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">age</td>
+<td class="gt_row gt_center">39 (34, 44)</td>
+<td class="gt_row gt_center">39 (34, 43)</td>
+<td class="gt_row gt_center">49 (14, 52)</td></tr>
+    <tr><td class="gt_row gt_left">job</td>
+<td class="gt_row gt_center"></td>
+<td class="gt_row gt_center"></td>
+<td class="gt_row gt_center"></td></tr>
+    <tr><td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">easy</td>
+<td class="gt_row gt_center">760 (69%)</td>
+<td class="gt_row gt_center">707 (72%)</td>
+<td class="gt_row gt_center">53 (47%)</td></tr>
+    <tr><td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">hard</td>
+<td class="gt_row gt_center">212 (19%)</td>
+<td class="gt_row gt_center">200 (20%)</td>
+<td class="gt_row gt_center">12 (11%)</td></tr>
+    <tr><td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">none</td>
+<td class="gt_row gt_center">128 (12%)</td>
+<td class="gt_row gt_center">80 (8.1%)</td>
+<td class="gt_row gt_center">48 (42%)</td></tr>
+    <tr><td class="gt_row gt_left">smoke</td>
+<td class="gt_row gt_center"></td>
+<td class="gt_row gt_center"></td>
+<td class="gt_row gt_center"></td></tr>
+    <tr><td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">current</td>
+<td class="gt_row gt_center">55 (5.0%)</td>
+<td class="gt_row gt_center">53 (5.4%)</td>
+<td class="gt_row gt_center">2 (1.8%)</td></tr>
+    <tr><td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">former</td>
+<td class="gt_row gt_center">64 (5.8%)</td>
+<td class="gt_row gt_center">60 (6.1%)</td>
+<td class="gt_row gt_center">4 (3.5%)</td></tr>
+    <tr><td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">never</td>
+<td class="gt_row gt_center">981 (89%)</td>
+<td class="gt_row gt_center">874 (89%)</td>
+<td class="gt_row gt_center">107 (95%)</td></tr>
+  </tbody>
+  
+  <tfoot class="gt_footnotes">
+    <tr>
+      <td class="gt_footnote" colspan="4"><sup class="gt_footnote_marks">1</sup> Median (IQR); n (%)</td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+<p>Based on the table it seems that most people living in coffee town tend to be older on average compared to people that do not (49 to 39). There also seems to be more unemployment among people who are living in coffee town (42% to 8.1%). And there are slightly more people that have never smoked (95% to 89%).</p>
+</div>
+<div id="exercise-3" class="section level2">
+<h2>Exercise 3</h2>
+<pre class="r"><code>dag &lt;- dagify(
+  coffee_town ~ smoke + age + job,
+  cups_of_coffee ~ smoke + age + job + coffee_town,
+  exposure = &quot;coffee_town&quot;,
+  outcome = &quot;cups_of_coffee&quot;
+)
+
+ggdag_adjustment_set(dag)</code></pre>
+<p><img src="analysis_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>coffee_town &lt;- glm(coffee_town ~ age + smoke + job,
+                   data = coffee_town,
+                   family = binomial()) %&gt;%
+  augment(type.predict = &quot;response&quot;,
+          data = coffee_town)</code></pre>
+<pre class="r"><code>df_plot_ps &lt;- coffee_town %&gt;%
+  tidyr::pivot_wider(names_from = coffee_town,
+                     values_from = .fitted,
+                     names_prefix = &quot;coffee_town_p&quot;)</code></pre>
+<pre class="r"><code>ggplot(df_plot_ps) + 
+  geom_histogram(bins = 50,
+   aes(x = coffee_town_p1), fill = &quot;cornflower blue&quot;) + 
+  scale_y_continuous(&quot;count&quot;, label = abs) + scale_x_continuous(&quot;propensity score&quot;) + geom_label(label = &quot;Live in Coffee Town&quot;,
+x = 0.5,
+y = 20)</code></pre>
+<pre><code>## Warning: Removed 987 rows containing non-finite values (stat_bin).</code></pre>
+<p><img src="analysis_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<p>It seems that most people that live in Coffee Town tend to have lower propensity scores.</p>
+</div>
+<div id="exercise-4" class="section level2">
+<h2>Exercise 4</h2>
+<pre class="r"><code>coffee_town &lt;- coffee_town %&gt;%
+  mutate(
+    w_ato = (1-.fitted)*coffee_town + .fitted*(1 - coffee_town)
+  )</code></pre>
+<p>The casual estimand we will be using is the average treatment effect among the overlap. This is important to use because it groups the people that have very similar propensity score and therefore could reasonably live in either town.</p>
+</div>
+<div id="exercise-5" class="section level2">
+<h2>Exercise 5</h2>
+<pre class="r"><code>library(survey)</code></pre>
+<pre><code>## Loading required package: grid</code></pre>
+<pre><code>## Loading required package: Matrix</code></pre>
+<pre><code>## 
+## Attaching package: &#39;Matrix&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:tidyr&#39;:
+## 
+##     expand, pack, unpack</code></pre>
+<pre><code>## Loading required package: survival</code></pre>
+<pre><code>## 
+## Attaching package: &#39;survey&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:graphics&#39;:
+## 
+##     dotchart</code></pre>
+<pre class="r"><code>svy_des_wato &lt;- svydesign(
+  ids = ~ 1,
+  data = coffee_town,
+  weights = ~ w_ato
+)
+svy_des_wato %&gt;%
+  tbl_svysummary(
+    by = coffee_town,
+    include = c(
+      &quot;age&quot;,
+      &quot;job&quot;,
+      &quot;smoke&quot;)
+    
+  ) %&gt;%
+  add_overall()</code></pre>
+<div id="egjexjrixq" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#egjexjrixq .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#egjexjrixq .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#egjexjrixq .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#egjexjrixq .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#egjexjrixq .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#egjexjrixq .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#egjexjrixq .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#egjexjrixq .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#egjexjrixq .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#egjexjrixq .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#egjexjrixq .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#egjexjrixq .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#egjexjrixq .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#egjexjrixq .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#egjexjrixq .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#egjexjrixq .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#egjexjrixq .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#egjexjrixq .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#egjexjrixq .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#egjexjrixq .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#egjexjrixq .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#egjexjrixq .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#egjexjrixq .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#egjexjrixq .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#egjexjrixq .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#egjexjrixq .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#egjexjrixq .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#egjexjrixq .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#egjexjrixq .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#egjexjrixq .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#egjexjrixq .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#egjexjrixq .gt_left {
+  text-align: left;
+}
+
+#egjexjrixq .gt_center {
+  text-align: center;
+}
+
+#egjexjrixq .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#egjexjrixq .gt_font_normal {
+  font-weight: normal;
+}
+
+#egjexjrixq .gt_font_bold {
+  font-weight: bold;
+}
+
+#egjexjrixq .gt_font_italic {
+  font-style: italic;
+}
+
+#egjexjrixq .gt_super {
+  font-size: 65%;
+}
+
+#egjexjrixq .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#egjexjrixq .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#egjexjrixq .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#egjexjrixq .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#egjexjrixq .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1"><strong>Characteristic</strong></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1"><strong>Overall</strong>, N = 182<sup class="gt_footnote_marks">1</sup></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1"><strong>0</strong>, N = 91<sup class="gt_footnote_marks">1</sup></th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1"><strong>1</strong>, N = 91<sup class="gt_footnote_marks">1</sup></th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">age</td>
+<td class="gt_row gt_center">41 (20, 50)</td>
+<td class="gt_row gt_center">39 (34, 43)</td>
+<td class="gt_row gt_center">50 (14, 52)</td></tr>
+    <tr><td class="gt_row gt_left">job</td>
+<td class="gt_row gt_center"></td>
+<td class="gt_row gt_center"></td>
+<td class="gt_row gt_center"></td></tr>
+    <tr><td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">easy</td>
+<td class="gt_row gt_center">96 (52%)</td>
+<td class="gt_row gt_center">48 (52%)</td>
+<td class="gt_row gt_center">48 (52%)</td></tr>
+    <tr><td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">hard</td>
+<td class="gt_row gt_center">22 (12%)</td>
+<td class="gt_row gt_center">11 (12%)</td>
+<td class="gt_row gt_center">11 (12%)</td></tr>
+    <tr><td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">none</td>
+<td class="gt_row gt_center">65 (35%)</td>
+<td class="gt_row gt_center">32 (35%)</td>
+<td class="gt_row gt_center">32 (35%)</td></tr>
+    <tr><td class="gt_row gt_left">smoke</td>
+<td class="gt_row gt_center"></td>
+<td class="gt_row gt_center"></td>
+<td class="gt_row gt_center"></td></tr>
+    <tr><td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">current</td>
+<td class="gt_row gt_center">4 (2.1%)</td>
+<td class="gt_row gt_center">2 (2.1%)</td>
+<td class="gt_row gt_center">2 (2.1%)</td></tr>
+    <tr><td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">former</td>
+<td class="gt_row gt_center">7 (4.1%)</td>
+<td class="gt_row gt_center">4 (4.1%)</td>
+<td class="gt_row gt_center">4 (4.1%)</td></tr>
+    <tr><td class="gt_row gt_left" style="text-align: left; text-indent: 10px;">never</td>
+<td class="gt_row gt_center">171 (94%)</td>
+<td class="gt_row gt_center">86 (94%)</td>
+<td class="gt_row gt_center">86 (94%)</td></tr>
+  </tbody>
+  
+  <tfoot class="gt_footnotes">
+    <tr>
+      <td class="gt_footnote" colspan="4"><sup class="gt_footnote_marks">1</sup> Median (IQR); n (%)</td>
+    </tr>
+  </tfoot>
+</table>
+</div>
+<p>Compared to the unweighted table, the variables of job type and smoking state are more similar regardless whether one is living in coffee town or not. However, the age difference still differs greatly on the town.</p>
+</div>
+<div id="exercise-6" class="section level2">
+<h2>Exercise 6</h2>
+<pre class="r"><code>df_plot_ps &lt;- coffee_town %&gt;%
+  tidyr::pivot_wider(names_from = coffee_town,
+                     values_from = .fitted,
+                     names_prefix = &quot;coffee_town_p&quot;)</code></pre>
+<pre class="r"><code>ggplot(df_plot_ps) +
+  geom_histogram(bins = 50,
+                 aes(x = coffee_town_p1,
+                     weight = w_ato),
+                 fill = &quot;cornflower blue&quot;) + 
+  geom_histogram(bins = 50, 
+                 aes(x = coffee_town_p0, 
+                     weight = w_ato,
+                     y = - stat(count)), 
+                 fill = &quot;orange&quot;) + 
+  scale_y_continuous(&quot;count&quot;, label = abs) + 
+  scale_x_continuous(&quot;propensity score&quot;) +
+  geom_label(
+    label = &quot;Live in Coffee Town&quot;, 
+    x = 0.4,
+    y = 15,
+  ) + 
+  geom_label(
+    label = &quot;Do not Live in Coffee Town&quot;, 
+    x = 0.4,
+    y = -15,
+  ) </code></pre>
+<pre><code>## Warning: Removed 987 rows containing non-finite values (stat_bin).</code></pre>
+<pre><code>## Warning: Removed 113 rows containing non-finite values (stat_bin).</code></pre>
+<p><img src="analysis_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<p>The lower propensity scores seem to be mirrored, meaning both groups at this score likely tend to have equal probability to live in coffee town or not. As the propensity scores increase, the probability to live in coffee town seems to be larger</p>
+</div>
+<div id="exercise-7" class="section level2">
+<h2>Exercise 7</h2>
+<pre class="r"><code>smds &lt;- coffee_town %&gt;% 
+  summarise( 
+    across( 
+      c(age, job, smoke), 
+      list(
+        unweighted = ~smd(.x, coffee_town)$estimate, 
+        weighted = ~smd(.x, coffee_town, w_ato)$estimate 
+      )
+    )
+  )</code></pre>
+<pre class="r"><code>plot_df &lt;- smds %&gt;%
+  pivot_longer(
+    everything(),
+    values_to = &quot;SMD&quot;,
+    names_to = c(&quot;variable&quot;, &quot;Method&quot;),
+    names_pattern = &quot;(.*)_(.*)&quot;
+  ) %&gt;%
+  arrange(Method,abs(SMD)) %&gt;%
+  mutate(variable = fct_inorder(variable))</code></pre>
+<pre class="r"><code>ggplot(
+  data = plot_df,
+  aes(x = abs(SMD), y = variable, 
+      group = Method, color = Method)
+) +  
+  geom_line(orientation = &quot;y&quot;) +
+  geom_point() + 
+  geom_vline(xintercept = 0.1, 
+             color = &quot;black&quot;, size = 0.1) +   labs(x = &quot;Standardized Mean Difference&quot;, y = &quot;Variable&quot;)</code></pre>
+<p><img src="analysis_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
+<p>Based on the “Love Plot” the standardized weighted mean difference for the variables are abount 0. Compared to the unweighted side, there is much more difference between people in the towns.</p>
+</div>
+<div id="exercise-8" class="section level2">
+<h2>Exercise 8</h2>
+<pre class="r"><code>ggplot(coffee_town, 
+       aes(x = age, group = coffee_town, 
+           color = factor(coffee_town))) +
+  stat_ecdf() +
+  scale_color_manual(&quot;Coffee Town Resident&quot;, 
+                     values = c(&quot;#5154B8&quot;, &quot;#5DB854&quot;),
+                     labels = c(&quot;No&quot;, &quot;Yes&quot;)) + 
+  scale_x_continuous(&quot;Age&quot;,) + 
+  ylab(&quot;Proportion &lt;= x&quot;) +labs(title = &quot;Unweighted ECDF Age&quot;)</code></pre>
+<p><img src="analysis_files/figure-html/unnamed-chunk-17-1.png" width="672" /></p>
+<pre class="r"><code>ecdf_1 &lt;- coffee_town %&gt;%
+  filter(coffee_town == 1) %&gt;%
+  arrange(age) %&gt;%
+  mutate(cum_pct = cumsum(w_ato) / sum(w_ato))
+ecdf_0 &lt;- coffee_town %&gt;%
+  filter(coffee_town == 0) %&gt;%
+  arrange(age) %&gt;%
+  mutate(cum_pct = cumsum(w_ato) / sum(w_ato))
+ggplot(ecdf_1, aes(x = age, y = cum_pct)) +
+  geom_line(color = &quot;#5DB854&quot;) +
+  geom_line(data = ecdf_0, 
+            aes(x = age, y = cum_pct), 
+            color = &quot;#5154B8&quot;) + 
+  xlab(&quot;Age&quot;) + 
+  ylab(&quot;Proportion &lt;= x&quot;) +
+  labs(title = &quot;Weighted ECDF Age&quot;)</code></pre>
+<p><img src="analysis_files/figure-html/unnamed-chunk-18-1.png" width="672" /></p>
+<p>Only age is a continuous confounder variable, so we only need to create tables for that variable. However, based on the tables you can see in the unweighted case that coffee town residents probabilities of age vary extremely compared to the noncoffee town residents. In the weighted table it is slightly better however, still differs greatly.</p>
+</div>
+<div id="exercise-9" class="section level2">
+<h2>Exercise 9</h2>
+<pre class="r"><code>coffee_town &lt;- glm(coffee_town ~ splines::ns(age,4) + smoke + job,
+                   data = coffee_town,
+                   family = binomial()) %&gt;%
+  augment(type.predict = &quot;response&quot;,
+          data = coffee_town) %&gt;%
+  mutate(
+    w_ato = (1-.fitted)*coffee_town + .fitted*(1 - coffee_town)
+  )</code></pre>
+<pre class="r"><code>ecdf_1 &lt;- coffee_town %&gt;%
+  filter(coffee_town == 1) %&gt;%
+  arrange(age) %&gt;%
+  mutate(cum_pct = cumsum(w_ato) / sum(w_ato))
+ecdf_0 &lt;- coffee_town %&gt;%
+  filter(coffee_town == 0) %&gt;%
+  arrange(age) %&gt;%
+  mutate(cum_pct = cumsum(w_ato) / sum(w_ato))
+ggplot(ecdf_1, aes(x = age, y = cum_pct)) +
+  geom_line(color = &quot;#5DB854&quot;) +
+  geom_line(data = ecdf_0, 
+            aes(x = age, y = cum_pct), 
+            color = &quot;#5154B8&quot;) + 
+  xlab(&quot;Age&quot;) + 
+  ylab(&quot;Proportion &lt;= x&quot;) +
+  labs(title = &quot;Weighted ECDF Age&quot;)</code></pre>
+<p><img src="analysis_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
+<pre class="r"><code>smds_2 &lt;- coffee_town %&gt;% 
+  summarise( 
+    across( 
+      c(age, job, smoke), 
+      list(
+        unweighted = ~smd(.x, coffee_town)$estimate, 
+        weighted = ~smd(.x, coffee_town, w_ato)$estimate 
+      )
+    )
+  )</code></pre>
+<pre class="r"><code>plot_df_fix &lt;- smds_2 %&gt;%
+  pivot_longer(
+    everything(),
+    values_to = &quot;SMD&quot;,
+    names_to = c(&quot;variable&quot;, &quot;Method&quot;),
+    names_pattern = &quot;(.*)_(.*)&quot;
+  ) %&gt;%
+  arrange(Method,abs(SMD)) %&gt;%
+  mutate(variable = fct_inorder(variable))</code></pre>
+<pre class="r"><code>ggplot(
+  data = plot_df_fix,
+  aes(x = abs(SMD), y = variable, 
+      group = Method, color = Method)
+) +  
+  geom_line(orientation = &quot;y&quot;) +
+  geom_point() + 
+  geom_vline(xintercept = 0.1, 
+             color = &quot;black&quot;, size = 0.1) +   labs(x = &quot;Standardized Mean Difference&quot;, y = &quot;Variable&quot;)</code></pre>
+<p><img src="analysis_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
+<p>The ECDF plot matches much better, therefore this new model where we modeled age as a natural spline with 3 degrees of freedom seems to be much better.</p>
+</div>
+<div id="exercise-10" class="section level2">
+<h2>Exercise 10</h2>
+<pre class="r"><code>coffee_town %&gt;%
+  summarise(
+    w_ato = sum(cups_of_coffee * coffee_town * w_ato) / 
+      sum(coffee_town * w_ato) - 
+      sum(cups_of_coffee * (1 - coffee_town) * w_ato) / 
+      sum((1 - coffee_town) * w_ato))</code></pre>
+<pre><code>## # A tibble: 1 × 1
+##      w_ato
+##      &lt;dbl&gt;
+## 1 -0.00346</code></pre>
+<p>Based on this propensity score model, we would estimate the Average Treatment Effect amongst the overlap to be -0.00346. This means that those who are Residents in Coffee Town on average drink 0.00346 cups of coffee per day than those not residents of Coffee Town, based on the model that we created. However, this is just an esitmate and does not equate a definitive answer to the question. However, based on the model people in Coffee Town do not drink more coffee than those not living in Coffee Town.</p>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
